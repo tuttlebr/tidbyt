@@ -22,14 +22,13 @@ def main():
     kwh = math.round(float(response.json()["data"]["result"][0]["value"][1]))
 
     return render.Root(
-        child = render.Box( # This Box exists to provide vertical centering
-            render.Row(
-                expanded=True, # Use as much horizontal space as possible
-                main_align="space_evenly", # Controls horizontal alignment
-                cross_align="center", # Controls vertical alignment
+        child = render.Column(
+                expanded=False,
+                main_align="space_around",
+                cross_align="center",
                 children = [
-                    render.Text("{} kWh".format(kwh), color="#76B900"),
+                    render.Text("GPU Power", font="6x13", color="#76B900"),
+                    render.Text("{} kWh".format(kwh), font="6x13", color="#76B900"),
                 ],
-            ),
         ),
     )
