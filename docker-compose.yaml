@@ -1,0 +1,44 @@
+services:
+  serve:
+    build:
+      context: prometheus-monitoring
+    image: tidbyt:prometheus-monitoring
+    ports:
+      - 8080:8080
+    volumes:
+      - type: bind
+        source: prometheus-monitoring
+        target: /workspace
+    entrypoint:
+      [
+        "pixlet",
+        "serve",
+        "--host=0.0.0.0",
+        "/workspace/prometheus-monitoring.star",
+      ]
+
+  render:
+    build:
+      context: prometheus-monitoring
+    image: tidbyt:prometheus-monitoring
+    volumes:
+      - type: bind
+        source: prometheus-monitoring
+        target: /workspace
+    entrypoint: ["pixlet", "render", "/workspace/prometheus-monitoring.star"]
+
+  daemonize:
+    build:
+      context: prometheus-monitoring
+    image: tidbyt:prometheus-monitoring
+    environment:
+      - DEVICE_ID=${DEVICE_ID}
+      - TIDBYT_API_TOKEN=${TIDBYT_API_TOKEN}
+    volumes:
+      - type: bind
+        source: prometheus-monitoring
+        target: /workspace
+    entrypoint:
+      [
+        "/workspace/daemonize-push.sh",
+      ]
