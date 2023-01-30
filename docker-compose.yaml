@@ -31,6 +31,7 @@ services:
     build:
       context: prometheus-monitoring
     image: tidbyt:prometheus-monitoring
+    restart: always
     environment:
       - DEVICE_ID=${DEVICE_ID}
       - TIDBYT_API_TOKEN=${TIDBYT_API_TOKEN}
