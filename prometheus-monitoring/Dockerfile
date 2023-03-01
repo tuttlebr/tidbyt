@@ -1,4 +1,4 @@
-ARG BASE_IMAGE=ubuntu:20.04
+ARG BASE_IMAGE=ubuntu
 
 FROM $BASE_IMAGE
 
@@ -18,3 +18,6 @@ RUN chmod +x ./pixlet
 
 # Move the binary into your path.
 RUN mv pixlet /usr/local/bin/pixlet
+WORKDIR /workspace
+COPY . .
+ENTRYPOINT /workspace/daemonize-push.sh
