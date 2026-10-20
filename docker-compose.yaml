@@ -1,10 +1,17 @@
+x-tidbyt-build: &tidbyt-build
+  context: prometheus-monitoring
+  args:
+    BASE_IMAGE: ${BASE_IMAGE:-ubuntu:24.04}
+    PIXLET_VERSION: ${PIXLET_VERSION:-0.34.0}
+
 services:
   serve:
-    build:
-      context: prometheus-monitoring
-    image: discovery.local:31500/tidbyt:prometheus-monitoring
+    build: *tidbyt-build
+    image: loca-tidbyt/tidbyt:prometheus-monitoring
+    env_file:
+      - .env
     ports:
-      - 8080:8080
+      - 18080:8080
     volumes:
       - type: bind
         source: prometheus-monitoring
@@ -18,28 +25,34 @@ services:
       ]
 
   render:
-    build:
-      context: prometheus-monitoring
-    image: discovery.local:31500/tidbyt:prometheus-monitoring
+    build: *tidbyt-build
+    image: loca-tidbyt/tidbyt:prometheus-monitoring
+    env_file:
+      - .env
     volumes:
       - type: bind
         source: prometheus-monitoring
         target: /workspace
-    entrypoint: ["pixlet", "render", "/workspace/prometheus-monitoring.star"]
+    entrypoint: ["/bin/bash", "/workspace/daemonize-push.sh", "render"]
 
   daemonize:
-    build:
-      context: prometheus-monitoring
-    image: discovery.local:31500/tidbyt:prometheus-monitoring
+    build: *tidbyt-build
+    image: loca-tidbyt/tidbyt:prometheus-monitoring
+    env_file:
+      - .env
     restart: always
-    environment:
-      - DEVICE_ID=${DEVICE_ID}
-      - TIDBYT_API_TOKEN=${TIDBYT_API_TOKEN}
-    # volumes:
-    #   - type: bind
-    #     source: prometheus-monitoring
-    #     target: /workspace
-    # entrypoint:
-    #   [
-    #     "/workspace/daemonize-push.sh",
-    #   ]
+    healthcheck:
+      test: ["CMD", "/bin/bash", "/workspace/daemonize-push.sh", "healthcheck"]
+      interval: 30s
+      timeout: 5s
+      start_period: 60s
+      retries: 3
+
+networks:
+  default:
+    name: tidbyt_default
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.30.50.0/24
+          gateway: 172.30.50.1

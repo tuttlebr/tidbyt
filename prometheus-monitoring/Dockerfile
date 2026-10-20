@@ -1,23 +1,29 @@
-ARG BASE_IMAGE=ubuntu
+ARG BASE_IMAGE=ubuntu:24.04
 
 FROM $BASE_IMAGE
 
-ENV DEBIAN_FRONTEND=noninteractive
+ARG PIXLET_VERSION=0.34.0
+ARG TARGETARCH
 
 RUN apt-get update \
-    && apt-get -y install curl jq
+    && DEBIAN_FRONTEND=noninteractive apt-get -y install --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# Download the archive.
-RUN curl -LO https://github.com/tidbyt/pixlet/releases/download/v0.22.4/pixlet_0.22.4_linux_amd64.tar.gz
+RUN set -eu; \
+    arch="${TARGETARCH:-$(dpkg --print-architecture)}"; \
+    case "$arch" in amd64|arm64) ;; *) echo "Unsupported architecture: $arch"; exit 1 ;; esac; \
+    archive="pixlet_${PIXLET_VERSION}_linux_${arch}.tar.gz"; \
+    url="https://github.com/tidbyt/pixlet/releases/download/v${PIXLET_VERSION}"; \
+    mkdir /tmp/pixlet; \
+    cd /tmp/pixlet; \
+    curl --fail --show-error --location --retry 3 --connect-timeout 10 --max-time 120 -o "$archive" "$url/$archive"; \
+    curl --fail --show-error --location --retry 3 --connect-timeout 10 --max-time 120 -o checksums.txt "$url/checksums.txt"; \
+    awk -v archive="$archive" '$2 == archive { print }' checksums.txt | sha256sum --check --strict -; \
+    tar -xzf "$archive" pixlet; \
+    install -m 0755 pixlet /usr/local/bin/pixlet; \
+    rm -rf /tmp/pixlet
 
-# Unpack the archive.
-RUN tar -xvf pixlet_0.22.4_linux_amd64.tar.gz
-
-# Ensure the binary is executable.
-RUN chmod +x ./pixlet
-
-# Move the binary into your path.
-RUN mv pixlet /usr/local/bin/pixlet
 WORKDIR /workspace
-COPY . .
-ENTRYPOINT /workspace/daemonize-push.sh
+COPY prometheus-monitoring.star ./
+COPY --chmod=755 daemonize-push.sh ./
+ENTRYPOINT ["/bin/bash", "/workspace/daemonize-push.sh"]

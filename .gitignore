@@ -1,3 +1,7 @@
 .env
 *.webp
 .vscode
+.DS_Store
+*.metadata.json
+__pycache__/
+backups/
